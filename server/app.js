@@ -13,6 +13,66 @@ app.use(express.json({ limit: "50mb" }));
 
 app.use(cookieParser());
 
+app.post("/webhook", async (req, res) => {
+  let body = req.body;
+  console.log("Received body for webhook callback: ", body);
+  if (body.object) {
+    if (body.entry?.[0]?.changes?.[0]?.value?.messages?.[0]) {
+      let phone_number_id = body.entry[0].changes[0].value.metadata.phone_number_id;
+      let from = body.entry[0].changes[0].value.messages[0].from;
+      let prevMsgID = body.entry[0].changes[0].value.messages[0].id;
+      
+      try {
+        console.log("Sending reply back to user with phone number: ", from);
+        await axios.post(
+          `https://graph.facebook.com/${process.env.API_VERSION}/${phone_number_id}/messages`,
+          {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: from,
+            context: {
+              message_id: prevMsgID,
+            },
+            type: "text",
+            text: {
+              preview_url: false,
+              body: "TEST MSG CONTENT FROM AUBREY FLOWERS",
+            },
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${process.env.USER_ACCESS_TOKEN}`,
+            },
+          }
+        );
+        return res.status(200).json({
+          status: "success",
+          message: "Message Reply sent successfully",
+        });
+      } catch (error) {
+        console.error("Error sending reply message:", error);
+        return res.status(500).json({
+          status: "success",
+          message: "Message Reply sent successfully",
+        });
+      }
+    } else {
+      console.warn("Message structure not as expected:", body);
+      return res.status(404).json({
+        status: "success",
+        message: "Message structure not as expected",
+      });
+    }
+  } else {
+    console.warn("No object found in body");
+    return res.status(400).json({
+      status: "success",
+      message: "No object found in body",
+    });
+  }
+});
+
 app.post("/:phone_number", async (req, res) => {
   const phone = req.params.phone_number;
   try {
@@ -56,8 +116,10 @@ app.post("/:phone_number", async (req, res) => {
       });
     }
   }
-
-  res.send("Hello from Rizzarch Backend");
+  res.status(500).json({
+    status: "error",
+    message: "Something went wrong on the server",
+  })
 });
 
 app.get("/webhook", (req, res) => {
@@ -65,58 +127,13 @@ app.get("/webhook", (req, res) => {
   let challenge = req.query["hub.challenge"];
   let token = req.query["hub.verify_token"];
   const mytoken = process.env.MY_TOKEN;
-  
+
   if (mode && token) {
     if (mode === "subscribe" && token === mytoken) {
       res.status(200).send(challenge);
     } else {
       res.sendStatus(403);
     }
-  }
-});
-
-app.post("/webhook", async (req, res) => {
-  let body = req.body;
-
-  if (body.object) {
-    if (body.entry?.[0]?.changes?.[0]?.value?.messages?.[0]) {
-      let phone_number_id = body.entry[0].changes[0].value.metadata.phone_number_id;
-      let from = body.entry[0].changes[0].value.messages[0].from;
-      let prevMsgID = body.entry[0].changes[0].value.messages[0].id;
-
-      try {
-        await axios.post(
-          `https://graph.facebook.com/${process.env.API_VERSION}/${phone_number_id}/messages`,
-          {
-            messaging_product: "whatsapp",
-            recipient_type: "individual",
-            to: from,
-            context: {
-              message_id: prevMsgID,
-            },
-            type: "text",
-            text: {
-              preview_url: false,
-              body: "TEST MSG CONTENT FROM AUBREY FLOWERS",
-            },
-          },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${process.env.access_token}`,
-            },
-          }
-        );
-        res.sendStatus(200);
-      } catch (error) {
-        console.error("Error sending message:", error);
-        res.sendStatus(500);
-      }
-    } else {
-      res.sendStatus(404);
-    }
-  } else {
-    res.sendStatus(400);
   }
 });
 
