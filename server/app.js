@@ -40,12 +40,14 @@ app.post("/webhook", async (req, res) => {
           response = await sendDefaultReplyMessage(from, phone_number_id, prevMsgID);
         }
         if (response.status === 200) {
+          console.info("Message Reply sent successfully");
           return res.status(200).json({
             status: "success",
             message: "Message Reply sent successfully",
           });
         }
       } catch (error) {
+        console.error("Error while sending reply: ", error);
         return handleWhatsAppCloudAPIErrors(error, res);
       }
     } else {
