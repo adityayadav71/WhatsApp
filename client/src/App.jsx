@@ -8,10 +8,13 @@ function App() {
 
     const formData = new FormData(e.target);
     const phone = formData.get("phone");
-    console.log("Phone Number:", phone);
+    const message = formData.get("message");
+    console.log("Form Data:", phone, message);
 
     try {
-      const { data } = await axios.post(`http://localhost:3000/${phone}`);
+      const { data } = await axios.post(`http://localhost:3000/sendMessage/${phone}`, {
+        message,
+      });
       if (data.status === "success") {
         toast.success(data.message);
       }
@@ -30,6 +33,10 @@ function App() {
       <div className="flex">
         <label htmlFor="phone">Phone Number</label>
         <input type="text" name="phone" placeholder="Enter Phone Number" />
+      </div>
+      <div className="flex">
+        <label htmlFor="message">Message</label>
+        <textarea type="text" name="message" placeholder="Enter Message"></textarea>
       </div>
       <button type="submit">Send</button>
     </form>

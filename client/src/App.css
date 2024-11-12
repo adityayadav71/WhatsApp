@@ -25,3 +25,11 @@ input {
   outline: none;
   border: none;
 }
+
+textarea {
+  resize: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  outline: none;
+  border: none;
+}
